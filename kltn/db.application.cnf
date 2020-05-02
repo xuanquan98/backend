@@ -1,0 +1,5 @@
+[server]
+database = "blog_data"
+user = "root"
+password = "Xuanquan98_gol998"
+default-character-set = utf8
