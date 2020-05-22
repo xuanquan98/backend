@@ -14,3 +14,12 @@ class CV(models.Model):
 
 	def __str__( self ):
 		return self.nameCv
+
+
+class Auth(models.Model):
+	username = models.CharField(max_length=100)
+	token = models.CharField(max_length=100)
+	date = models.DateTimeField(auto_now_add=True)
+
+	def __str__( self ):
+		return self.nameCv

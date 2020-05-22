@@ -8,6 +8,9 @@ from django.shortcuts import render
 from .models import CV
 from django.contrib.auth import authenticate
 import sys
+from uuid import uuid4
+from .models import Auth
+from django.http import QueryDict
 
 # Create your views here.
 
@@ -277,10 +280,19 @@ def saveDB(filename,link,skill,info):
 
 def listCv(request):
     if request.method == "GET" :
+        username = ''
+        data = ''
+        token = request.headers.get('Authorization')
+        list_auth = list(Auth.objects.values())
+        for auth in list_auth:
+            if auth['token'] ==  token:
+                username = auth['username']
+
         month = request.GET.get('month')
         year = request.GET.get('year')
-        data =  list(CV.objects.filter(date__year = year).filter(date__month = month).values())
-        return JsonResponse({'data': data})
+        if username != '':
+            data =  list(CV.objects.filter(date__year = year).filter(date__month = month).values())
+        return JsonResponse({'data': data,'username': username})
 
 
 def sendEmail(email,name):
@@ -324,8 +336,18 @@ def login(request):
         data = request.POST.copy()
         user = authenticate(username=data['username'], password=data['password'])
         if user is not None:
-            response = JsonResponse({'data':data['username']})
-            response.set_cookie(key='user', value=data['username'])
+            rand_token = uuid4()
+            response = JsonResponse({'data':rand_token,
+                                    'username': data['username']})
+            list_auth = list(Auth.objects.values())
+            for auth in list_auth:
+                if auth['username'] ==  data['username']:
+                    a = Auth.objects.get(id = auth['id'])
+                    a.delete()
+            auth = Auth()
+            auth.token = rand_token
+            auth.username = data['username']
+            auth.save()
             return response
             # A backend authenticated the credentials
         else:
@@ -333,4 +355,42 @@ def login(request):
             # No backend authenticated the credentials
 
 def logout(request):
-    return JsonResponse({'data':'1'})
+    if request.method == "GET":
+        token = request.headers.get('Authorization')
+        list_auth = list(Auth.objects.values())
+        for auth in list_auth:
+            if auth['token'] ==  token:
+                a = Auth.objects.get(id = auth['id'])
+                a.delete()
+    return JsonResponse({'data':'Logout'})
+
+def deleteCv(request):
+    if request.method == "DELETE":
+        token = request.headers.get('Authorization')
+        list_auth = list(Auth.objects.values())
+        for auth in list_auth:
+            if auth['token'] ==  token:
+               idcv = request.GET.get('id')
+               CV.objects.get(id = idcv).delete()
+               return JsonResponse({'data':'Success'})
+        return JsonResponse({'data':'Fail'})
+
+
+def updateCv(request):
+    if request.method == "POST":
+        token = request.headers.get('Authorization')
+        list_auth = list(Auth.objects.values())
+        for auth in list_auth:
+            if auth['token'] ==  token:
+                data = request.POST.copy()
+                cv = CV.objects.get(id = data['id'])
+                cv.fullName = data['fullname']
+                cv.nameCv = data['nameCv']
+                cv.skill = data['skill']
+                cv.email = data['email']
+                cv.phone = data['phone']
+                cv.gender = data['gender']
+                cv.dateOfBirth = data['dateOfBirth']
+                cv.save()
+                return JsonResponse({'data':'Success'})
+        return JsonResponse({'data':'Fail'})

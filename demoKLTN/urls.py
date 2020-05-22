@@ -6,4 +6,6 @@ urlpatterns = [
    path('/getCv',views.listCv),
    path('/login', views.login),
    path('/logout', views.logout),
+   path('/deleteCv', views.deleteCv),
+   path('/updateCv', views.updateCv)
 ]
